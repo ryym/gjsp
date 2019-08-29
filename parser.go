@@ -42,7 +42,7 @@ func parseValue(l *Lexer) (v interface{}, err error) {
 	case 'n':
 		v, err = parseNull(l)
 	default:
-		if ch == '-' || isDigit(ch) && ch != '0' {
+		if ch == '-' || isDigit(ch) {
 			v, err = parseNumber(l)
 		} else {
 			err = fmt.Errorf("unexpected character %s\n", string(ch))
@@ -184,10 +184,9 @@ func parseNull(l *Lexer) (v interface{}, err error) {
 
 func parseNumber(l *Lexer) (v interface{}, err error) {
 	start := l.Position()
-
+	end := start + 1
 	fraction := false
 	exponent := false
-	end := start + 1
 	for ; ; end++ {
 		ch := l.ReadChar()
 
@@ -234,6 +233,17 @@ func parseNumber(l *Lexer) (v interface{}, err error) {
 	}
 
 	num := l.Range(start, end)
+
+	head := 0
+	if num[0] == '-' {
+		head += 1
+	}
+	if len(num) > head+1 {
+		if num[head] == '0' && isDigit(num[head+1]) {
+			return v, errors.New("invalid number: 0 start")
+		}
+	}
+
 	if fraction {
 		return strconv.ParseFloat(num, 64)
 	} else {
